@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "CreatorFormat Lite",
+    "slug": "creator-format-lite",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.creatorformatlite.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow CreatorFormat Lite to save media to your library.",
+        "NSPhotoLibraryAddUsageDescription": "Allow CreatorFormat Lite to save photos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.creatorformatlite.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow CreatorFormat Lite to access your photos.",
+          "cameraPermission": "Allow CreatorFormat Lite to access your camera."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow CreatorFormat Lite to save media to your library.",
+          "savePhotosPermission": "Allow CreatorFormat Lite to save photos."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "27d896fd-4751-4bad-90a3-9483eeda6d6a"
+      }
+    }
+  }
+}

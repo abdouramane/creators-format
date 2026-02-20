@@ -1,0 +1,87 @@
+# QUICK REFERENCE CARD
+
+## 🚀 FASTEST WAY: 2 MINUTES
+
+### Phone: Install Expo Go
+```
+Play Store → "Expo Go" → Install
+```
+
+### Mac: Start Dev Server
+```bash
+npm start
+# (in CreatorFormatLite folder)
+```
+
+### Phone: Scan & Run
+```
+Expo Go → "Scan QR code" → Point at Mac → Wait 30 sec → RUN!
+```
+
+---
+
+## 📋 COMMANDS YOU MIGHT NEED
+
+```bash
+# Start app
+npm start
+
+# Get APK (when ready)
+eas login
+eas build --platform android
+
+# Reload app (in terminal)
+Press 'r'
+
+# Stop dev server
+Ctrl + C
+```
+
+---
+
+## 🎯 3 OPTIONS
+
+| Method | Time | For |
+|--------|------|-----|
+| Expo Go | 2 min | Testing now |
+| EAS APK | 20 min | Sharing |
+| Local | 70 min | Control |
+
+---
+
+## ✅ REQUIREMENTS
+
+- Android phone
+- Expo Go app (free)
+- Mac terminal
+- Same WiFi network
+
+---
+
+## 🆘 TROUBLESHOOTING
+
+**App won't load?**
+- Check same WiFi
+- Run `npm start` again
+- Rescan QR code
+
+**Permission errors?**
+- Settings > Apps > Permissions > Allow
+
+**Crashes?**
+- Terminal: Press 'r'
+- Phone: Force close, rescan
+
+---
+
+## 📞 DOCS
+
+- `SUPER_SIMPLE_GUIDE.md`
+- `EXPO_GO_QUICK_START.md`
+- `ANDROID_BUILD_GUIDE.md`
+- `LOCAL_BUILD_GUIDE.md`
+
+---
+
+**GO TEST YOUR APP!** 🚀
+
