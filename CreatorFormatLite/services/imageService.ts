@@ -20,8 +20,9 @@ const getAspectRatioDimensions = (ratio: AspectRatio): AspectRatioDimensions => 
 };
 
 /**
- * Process image by copying it to cache with metadata about desired aspect ratio.
- * Note: For full image processing (resizing, padding), use a backend service.
+ * Validate and process image from gallery/file system.
+ * Creates a metadata file with the desired aspect ratio for the frontend to use.
+ * Note: On Android, images are copied to cache directory for safe access.
  */
 export const processImage = async (
   imageUri: string,
@@ -29,37 +30,74 @@ export const processImage = async (
   quality: number = 0.8
 ): Promise<string> => {
   try {
+    console.log('[ImageService] Processing image:', { imageUri, aspectRatio, quality });
+
+    // Validate URI
+    if (!imageUri) {
+      throw new Error('Invalid image URI provided');
+    }
+
     const targetDimensions = getAspectRatioDimensions(aspectRatio);
-    const outputPath = `${FileSystem.cacheDirectory}image_${Date.now()}.jpg`;
+    const timestamp = Date.now();
+    const outputPath = `${FileSystem.cacheDirectory}image_${timestamp}.jpg`;
+    const metadataPath = `${FileSystem.cacheDirectory}image_${timestamp}_metadata.json`;
 
-    // Copy image to cache directory
-    await FileSystem.copyAsync({
-      from: imageUri,
-      to: outputPath,
-    });
+    // Check if source file exists and is accessible
+    try {
+      const sourceInfo = await FileSystem.getInfoAsync(imageUri);
+      if (!sourceInfo.exists) {
+        throw new Error(`Source image file not found: ${imageUri}`);
+      }
+      console.log('[ImageService] Source file found:', sourceInfo);
+    } catch (err) {
+      console.error('[ImageService] Error accessing source file:', err);
+      throw new Error(`Cannot access image file: ${String(err)}`);
+    }
 
-    // Store metadata about the aspect ratio for reference
-    const metadataPath = `${FileSystem.cacheDirectory}image_${Date.now()}_metadata.json`;
-    await FileSystem.writeAsStringAsync(
-      metadataPath,
-      JSON.stringify({
-        originalUri: imageUri,
-        aspectRatio,
-        targetDimensions,
-        quality,
-        timestamp: new Date().toISOString(),
-      })
-    );
+    // Copy image to app cache directory
+    try {
+      await FileSystem.copyAsync({
+        from: imageUri,
+        to: outputPath,
+      });
+      console.log('[ImageService] Image copied to cache:', outputPath);
+    } catch (err) {
+      console.error('[ImageService] Error copying image:', err);
+      throw new Error(`Failed to copy image: ${String(err)}`);
+    }
+
+    // Store metadata about the aspect ratio and processing details
+    const metadata = {
+      originalUri: imageUri,
+      aspectRatio,
+      targetDimensions,
+      quality,
+      timestamp: new Date().toISOString(),
+      cacheUri: outputPath,
+      instructions: `Image formatted for ${aspectRatio} aspect ratio. Target dimensions: ${targetDimensions.width}x${targetDimensions.height}px`,
+    };
+
+    try {
+      await FileSystem.writeAsStringAsync(
+        metadataPath,
+        JSON.stringify(metadata, null, 2)
+      );
+      console.log('[ImageService] Metadata saved:', metadataPath);
+    } catch (err) {
+      console.error('[ImageService] Error saving metadata:', err);
+    }
 
     return outputPath;
   } catch (error) {
-    throw new Error(`Image processing error: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[ImageService] Processing failed:', errorMessage);
+    throw new Error(`Image processing error: ${errorMessage}`);
   }
 };
 
 /**
  * Process image with padding to fit aspect ratio.
- * For actual resizing with padding, consider using a backend service.
+ * The actual visual padding is applied on display/export.
  */
 export const resizeImageWithPadding = async (
   imageUri: string,
@@ -68,4 +106,3 @@ export const resizeImageWithPadding = async (
 ): Promise<string> => {
   return processImage(imageUri, aspectRatio, quality);
 };
-

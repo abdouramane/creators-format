@@ -30,37 +30,86 @@ export default function ExportScreen({ route, navigation }: Props) {
   const saveToGallery = async () => {
     try {
       setIsSaving(true);
+      console.log('[ExportScreen] Requesting media library permissions...');
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Unable to save media to gallery.');
+        console.warn('[ExportScreen] Permission denied:', status);
+        Alert.alert('Permission Denied', 'Unable to save media to gallery. Please enable permissions in settings.');
         return;
+      }
+
+      console.log('[ExportScreen] Permission granted, saving file...');
+
+      // Verify source file exists
+      try {
+        const sourceInfo = await FileSystem.getInfoAsync(outputPath);
+        if (!sourceInfo.exists) {
+          throw new Error('Processed file not found');
+        }
+        console.log('[ExportScreen] Source file verified:', sourceInfo);
+      } catch (err) {
+        console.error('[ExportScreen] Source file error:', err);
+        throw new Error('Cannot access processed file');
       }
 
       // Copy file to a permanent location
       const filename = `CreatorFormat_${Date.now()}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
       const permanentPath = `${FileSystem.documentDirectory}${filename}`;
 
+      console.log('[ExportScreen] Copying to:', permanentPath);
+
       await FileSystem.copyAsync({
         from: outputPath,
         to: permanentPath,
       });
 
-      // Add to media library
-      await MediaLibrary.createAssetAsync(permanentPath);
+      console.log('[ExportScreen] File copied, adding to media library...');
 
-      Alert.alert('Success', `${mediaType === 'video' ? 'Video' : 'Image'} saved to gallery!`);
+      // Add to media library
+      try {
+        await MediaLibrary.createAssetAsync(permanentPath);
+        console.log('[ExportScreen] File saved to gallery successfully');
+
+        Alert.alert(
+          'Success!',
+          `${mediaType === 'video' ? 'Video' : 'Image'} saved to gallery successfully!`,
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Home'),
+            },
+          ]
+        );
+      } catch (libraryError) {
+        console.error('[ExportScreen] Media library error:', libraryError);
+        // Still consider it a success if file was copied even if library add failed
+        Alert.alert(
+          'Saved Partially',
+          `File saved to device storage at: ${permanentPath}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Home'),
+            },
+          ]
+        );
+      }
 
       // Clean up cache
       try {
         await FileSystem.deleteAsync(outputPath);
+        console.log('[ExportScreen] Cache cleaned');
       } catch (e) {
-        // Ignore cleanup errors
+        console.warn('[ExportScreen] Cleanup error (non-critical):', e);
       }
-
-      navigation.navigate('Home');
     } catch (error) {
-      Alert.alert('Error', `Failed to save ${mediaType}. Please try again.`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[ExportScreen] Save error:', errorMessage);
+      Alert.alert(
+        'Save Failed',
+        `Failed to save ${mediaType}: ${errorMessage}\n\nPlease check your storage permissions and try again.`
+      );
     } finally {
       setIsSaving(false);
     }
@@ -85,10 +134,14 @@ export default function ExportScreen({ route, navigation }: Props) {
               source={{ uri: outputPath }}
               style={styles.preview}
               resizeMode="contain"
+              onError={(e) => {
+                console.error('[ExportScreen] Preview error:', e);
+              }}
             />
           ) : (
             <View style={styles.videoPreview}>
-              <Text style={styles.videoText}>Video Processed</Text>
+              <Text style={styles.videoText}>✅ Video Processed</Text>
+              <Text style={styles.videoSubtext}>Ready to save</Text>
             </View>
           )}
         </View>
@@ -117,15 +170,18 @@ export default function ExportScreen({ route, navigation }: Props) {
           disabled={isSaving}
         >
           {isSaving ? (
-            <ActivityIndicator color="#ffffff" size="small" />
+            <>
+              <ActivityIndicator color="#ffffff" size="small" />
+              <Text style={styles.saveButtonText}>Saving...</Text>
+            </>
           ) : (
-            <Text style={styles.saveButtonText}>Save to Gallery</Text>
+            <Text style={styles.saveButtonText}>💾 Save to Gallery</Text>
           )}
         </TouchableOpacity>
 
         {/* Start Over Button */}
         <TouchableOpacity
-          style={styles.startOverButton}
+          style={[styles.startOverButton, isSaving && styles.buttonDisabled]}
           onPress={startOver}
           disabled={isSaving}
         >
@@ -169,7 +225,13 @@ const styles = StyleSheet.create({
   },
   videoText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  videoSubtext: {
+    color: '#999',
+    fontSize: 13,
+    marginTop: 8,
   },
   title: {
     fontSize: 24,

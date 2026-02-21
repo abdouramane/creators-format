@@ -30,10 +30,14 @@ export default function FormatScreen({ route, navigation }: Props) {
   const { uri, mediaType } = route.params;
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('9:16');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConvert = async () => {
     try {
+      setError(null);
       setIsProcessing(true);
+
+      console.log('[FormatScreen] Starting conversion:', { uri, mediaType, selectedRatio });
 
       let outputPath: string;
 
@@ -43,17 +47,35 @@ export default function FormatScreen({ route, navigation }: Props) {
         outputPath = await processVideo(uri, selectedRatio);
       }
 
-      // Get file size
-      const fileInfo = await FileSystem.getInfoAsync(outputPath);
-      const fileSize = (fileInfo.exists && fileInfo.size) ? fileInfo.size : 0;
+      console.log('[FormatScreen] Conversion completed:', { outputPath });
 
-      navigation.navigate('Export', {
-        outputPath,
-        fileSize,
-        mediaType,
-      });
+      // Verify output file exists
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(outputPath);
+        if (!fileInfo.exists) {
+          throw new Error('Output file was not created');
+        }
+        console.log('[FormatScreen] Output file verified:', fileInfo);
+
+        const fileSize = fileInfo.size || 0;
+
+        navigation.navigate('Export', {
+          outputPath,
+          fileSize,
+          mediaType,
+        });
+      } catch (verifyError) {
+        console.error('[FormatScreen] Error verifying output file:', verifyError);
+        throw new Error('Failed to verify processed file. Please try again.');
+      }
     } catch (error) {
-      Alert.alert('Error', `Failed to process ${mediaType}. Please try again.`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[FormatScreen] Conversion error:', errorMessage);
+      setError(errorMessage);
+      Alert.alert(
+        'Conversion Error',
+        `Failed to process ${mediaType}:\n\n${errorMessage}`
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -69,16 +91,28 @@ export default function FormatScreen({ route, navigation }: Props) {
               source={{ uri }}
               style={styles.preview}
               resizeMode="contain"
+              onError={(e) => {
+                console.error('[FormatScreen] Image preview error:', e);
+                setError('Failed to load image preview');
+              }}
             />
           ) : (
             <View style={styles.videoPreview}>
-              <Text style={styles.videoText}>Video Preview</Text>
+              <Text style={styles.videoText}>📹 Video Selected</Text>
+              <Text style={styles.videoSubtext}>Ready for formatting</Text>
             </View>
           )}
         </View>
 
         {/* Title */}
         <Text style={styles.title}>Select Format</Text>
+
+        {/* Error message */}
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+          </View>
+        )}
 
         {/* Ratio Buttons */}
         <View style={styles.ratiosContainer}>
@@ -90,6 +124,7 @@ export default function FormatScreen({ route, navigation }: Props) {
                 selectedRatio === item.ratio && styles.ratioButtonActive,
               ]}
               onPress={() => setSelectedRatio(item.ratio)}
+              disabled={isProcessing}
             >
               <Text style={styles.ratioLabel}>{item.label}</Text>
               <Text style={styles.ratioDescription}>{item.description}</Text>
@@ -104,7 +139,10 @@ export default function FormatScreen({ route, navigation }: Props) {
           disabled={isProcessing}
         >
           {isProcessing ? (
-            <ActivityIndicator color="#ffffff" size="small" />
+            <>
+              <ActivityIndicator color="#ffffff" size="small" />
+              <Text style={styles.convertButtonText}>Processing...</Text>
+            </>
           ) : (
             <Text style={styles.convertButtonText}>Convert</Text>
           )}
@@ -156,7 +194,13 @@ const styles = StyleSheet.create({
   },
   videoText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  videoSubtext: {
+    color: '#999',
+    fontSize: 14,
+    marginTop: 8,
   },
   title: {
     fontSize: 24,
@@ -164,6 +208,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     color: '#000',
+  },
+  errorBox: {
+    width: '100%',
+    backgroundColor: '#FFE5E5',
+    borderLeftColor: '#D32F2F',
+    borderLeftWidth: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#B71C1C',
+    fontSize: 13,
   },
   ratiosContainer: {
     width: '100%',
@@ -200,6 +258,9 @@ const styles = StyleSheet.create({
     minWidth: 250,
     alignItems: 'center',
     marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
   },
   buttonDisabled: {
     opacity: 0.6,
