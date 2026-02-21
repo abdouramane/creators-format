@@ -2,6 +2,12 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
+      <module name="gradle-plugin-root.shared" target="11" />
+      <module name="gradle-plugin-root.shared-testutil" target="11" />
+      <module name="gradle-plugin-root.shared-testutil.main" target="11" />
+      <module name="gradle-plugin-root.shared-testutil.test" target="11" />
+      <module name="gradle-plugin-root.shared.main" target="11" />
+      <module name="gradle-plugin-root.shared.test" target="11" />
       <module name="gradle-plugins-root" target="21" />
       <module name="gradle-plugins-root.main" target="21" />
       <module name="gradle-plugins-root.react-native-gradle-plugin" target="11" />
